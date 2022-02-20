@@ -11,17 +11,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SG2.Class", "SG2.Class\SG2.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SG2.SourceGenerators", "SG2.SourceGenerators\SG2.SourceGenerators.csproj", "{4B97257B-F489-4258-9583-45D8686518FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SG3.Mapping", "SG3.Mapping\SG3.Mapping.csproj", "{35463954-4D28-42DB-B60E-3817928EDDCB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SG3.Mapping", "SG3.Mapping\SG3.Mapping.csproj", "{35463954-4D28-42DB-B60E-3817928EDDCB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SG3.SourceGenerators", "SG3.SourceGenerators\SG3.SourceGenerators.csproj", "{A860BFA8-110D-4061-92A6-C7C3AA283DDE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SG3.SourceGenerators", "SG3.SourceGenerators\SG3.SourceGenerators.csproj", "{A860BFA8-110D-4061-92A6-C7C3AA283DDE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SG3.Tests", "SG3.Tests\SG3.Tests.csproj", "{8C8567B4-AD65-4189-9AFE-CD1FD132CADE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SG3.Tests", "SG3.Tests\SG3.Tests.csproj", "{8C8567B4-AD65-4189-9AFE-CD1FD132CADE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SG4.Boilerplate", "SG4.Boilerplate\SG4.Boilerplate.csproj", "{0EB1FBB8-D16B-4956-9511-13E2A0D93FFB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SG4.Boilerplate", "SG4.Boilerplate\SG4.Boilerplate.csproj", "{0EB1FBB8-D16B-4956-9511-13E2A0D93FFB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SG4.SourceGenerators", "SG4.SourceGenerators\SG4.SourceGenerators.csproj", "{724B8DB9-A723-40D5-9F0C-E6F02726D8B4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SG4.SourceGenerators", "SG4.SourceGenerators\SG4.SourceGenerators.csproj", "{724B8DB9-A723-40D5-9F0C-E6F02726D8B4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SG4.Tests", "SG4.Tests\SG4.Tests.csproj", "{3B5C22AF-D524-47DD-A5DE-501C20D080A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SG4.Tests", "SG4.Tests\SG4.Tests.csproj", "{3B5C22AF-D524-47DD-A5DE-501C20D080A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceGenerators.Infrastructure", "SourceGenerators.Infrastructure\SourceGenerators.Infrastructure.csproj", "{5C8FF98F-075E-405C-B9C6-07A658A82EFF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -69,6 +71,10 @@ Global
 		{3B5C22AF-D524-47DD-A5DE-501C20D080A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3B5C22AF-D524-47DD-A5DE-501C20D080A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3B5C22AF-D524-47DD-A5DE-501C20D080A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C8FF98F-075E-405C-B9C6-07A658A82EFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C8FF98F-075E-405C-B9C6-07A658A82EFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C8FF98F-075E-405C-B9C6-07A658A82EFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C8FF98F-075E-405C-B9C6-07A658A82EFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

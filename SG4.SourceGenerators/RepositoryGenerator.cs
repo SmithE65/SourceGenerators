@@ -11,7 +11,6 @@ namespace SG4.SourceGenerators
     public class RepositoryGenerator : ISourceGenerator
     {
         private const string dbContextName = "ApplicationDbContext";
-        private const string dbContextFullName = "SG4.Boilerplate.Data.ApplicationDbContext";
 
         public void Execute(GeneratorExecutionContext context)
         {
@@ -51,11 +50,6 @@ namespace SG4.SourceGenerators
 
                 if (key != null)
                 {
-                    //context.ReportDiagnostic(Diagnostic.Create(
-                    //    new DiagnosticDescriptor("MYSG:0001", $"Entities must have a key defined", "No key found for entity {0}", "Design", DiagnosticSeverity.Warning, true),
-                    //    null,
-                    //    typeName));
-
                     if (key.Type.Name == "Int32")
                     {
                         baseInterfaces += $", IIntegerKey<{typeName}>";
@@ -86,9 +80,9 @@ namespace { receiver.ContextNamespace }.Repositories;
 
 #nullable enable
 
-public interface {interfaceName} : {baseInterfaces} {{ }}
+public partial interface {interfaceName} : {baseInterfaces} {{ }}
 
-internal class {className} : EfCoreRepositoryBase<{typeName}>, I{typeName}Repository
+internal partial class {className} : EfCoreRepositoryBase<{typeName}>, I{typeName}Repository
 {{
     public {className}({dbContextName} context) : base(context) {{ }}
 {methodImplementations}
