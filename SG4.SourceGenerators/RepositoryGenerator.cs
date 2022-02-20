@@ -24,7 +24,7 @@ namespace SG4.SourceGenerators
 
             foreach (var type in receiver.EntityTypes)
             {
-                var (repoName, interfaceName, source) = BuildRepository(type);
+                var (repoName, interfaceName, source) = BuildRepository(receiver.ContextNamespace, type);
                 if (!string.IsNullOrEmpty(repoName))
                 {
                     context.AddSource($"{repoName}.g.cs", source);
@@ -32,85 +32,8 @@ namespace SG4.SourceGenerators
                 }
             }
 
-            var regClass = BuildRegistrations(registrations);
+            var regClass = BuildRegistrations(receiver.ContextNamespace, registrations);
             context.AddSource("RepositoryRegistration.g.cs", regClass);
-
-            (string RepoName, string InterfaceName, string Source) BuildRepository(INamedTypeSymbol entity)
-            {
-                var typeName = entity.Name;
-                var interfaceName = $"I{typeName}Repository";
-                var className = $"{typeName}Repository";
-                var key = entity.GetMembers()
-                    .Where(x => x.Kind == SymbolKind.Property)
-                    .Select(x => x as IPropertySymbol)
-                    .FirstOrDefault(x => x != null && x.GetAttributes().Any(a => a.AttributeClass.Name == "KeyAttribute"));
-
-                var baseInterfaces = $"IRepository<{typeName}>";
-                var methodImplementations = new StringBuilder();
-
-                if (key != null)
-                {
-                    if (key.Type.Name == "Int32")
-                    {
-                        baseInterfaces += $", IIntegerKey<{typeName}>";
-                        methodImplementations.AppendLine($"\t public {typeName}? Find(int id) => Table.FirstOrDefault(x => x.{key.Name} == id);"); 
-                    }
-                    else if (key.Type.Name == "String")
-                    {
-                        baseInterfaces += $", IStringKey<{typeName}>";
-                        methodImplementations.AppendLine($"\t public {typeName}? Find(string id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
-                    }
-                }
-
-                methodImplementations.AppendLine($"\t public {typeName}? Find(Expression<Func<{typeName}, bool>> expression) => Table.FirstOrDefault(expression);");
-                methodImplementations.AppendLine($"\t public {typeName}[] GetAll() => Table.ToArray();");
-
-                var namespaces = new List<string>
-                {
-                    "using System.Linq.Expressions;",
-                    $"using {receiver.ContextNamespace};",
-                    $"using {receiver.ContextNamespace}.Repositories.Base;",
-                    $"using {entity.ContainingNamespace};"
-                };
-
-                var repo = $@"
-{string.Join(Environment.NewLine, namespaces.OrderBy(x => x))}
-
-namespace { receiver.ContextNamespace }.Repositories;
-
-#nullable enable
-
-public partial interface {interfaceName} : {baseInterfaces} {{ }}
-
-internal partial class {className} : EfCoreRepositoryBase<{typeName}>, I{typeName}Repository
-{{
-    public {className}({dbContextName} context) : base(context) {{ }}
-{methodImplementations}
-}}
-";
-
-                return (className, interfaceName, repo);
-            }
-
-            string BuildRegistrations(List<(string RepoName, string InterfaceName)> repositories)
-            {
-                var sb = new StringBuilder();
-                repositories.ForEach(x => sb.AppendLine($"\t\tservices.AddScoped<{x.InterfaceName},{x.RepoName}>();"));
-
-                return $@"
-using { receiver.ContextNamespace }.Repositories;
-namespace { receiver.ContextNamespace };
-
-public static class RepositoryRegistration
-{{
-    public static IServiceCollection RegisterRepos(this IServiceCollection services)
-    {{
-{sb}
-        return services;
-    }}
-}}
-";
-            }
         }
 
         public void Initialize(GeneratorInitializationContext context)
@@ -141,5 +64,86 @@ public static class RepositoryRegistration
                 }
             }
         }
+
+        #region TypeBuilders
+
+        private static (string RepoName, string InterfaceName, string Source) BuildRepository(string baseNamespace, INamedTypeSymbol entity)
+        {
+            var typeName = entity.Name;
+            var interfaceName = $"I{typeName}Repository";
+            var className = $"{typeName}Repository";
+            var key = entity.GetMembers()
+                .Where(x => x.Kind == SymbolKind.Property)
+                .Select(x => x as IPropertySymbol)
+                .FirstOrDefault(x => x != null && x.GetAttributes().Any(a => a.AttributeClass.Name == "KeyAttribute"));
+
+            var baseInterfaces = $"IRepository<{typeName}>";
+            var methodImplementations = new StringBuilder();
+
+            if (key != null)
+            {
+                if (key.Type.Name == "Int32")
+                {
+                    baseInterfaces += $", IIntegerKey<{typeName}>";
+                    methodImplementations.AppendLine($"\t public {typeName}? Find(int id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
+                }
+                else if (key.Type.Name == "String")
+                {
+                    baseInterfaces += $", IStringKey<{typeName}>";
+                    methodImplementations.AppendLine($"\t public {typeName}? Find(string id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
+                }
+            }
+
+            methodImplementations.AppendLine($"\t public {typeName}? Find(Expression<Func<{typeName}, bool>> expression) => Table.FirstOrDefault(expression);");
+            methodImplementations.AppendLine($"\t public {typeName}[] GetAll() => Table.ToArray();");
+
+            var namespaces = new List<string>
+                {
+                    "using System.Linq.Expressions;",
+                    $"using {baseNamespace};",
+                    $"using {baseNamespace}.Repositories.Base;",
+                    $"using {entity.ContainingNamespace};"
+                };
+
+            var repo = $@"
+{string.Join(Environment.NewLine, namespaces.OrderBy(x => x))}
+
+namespace { baseNamespace }.Repositories;
+
+#nullable enable
+
+public partial interface {interfaceName} : {baseInterfaces} {{ }}
+
+internal partial class {className} : EfCoreRepositoryBase<{typeName}>, I{typeName}Repository
+{{
+    public {className}({dbContextName} context) : base(context) {{ }}
+{methodImplementations}
+}}
+";
+
+            return (className, interfaceName, repo);
+        }
+
+        string BuildRegistrations(string baseNamespace, List<(string RepoName, string InterfaceName)> repositories)
+        {
+            var sb = new StringBuilder();
+            repositories.ForEach(x => sb.AppendLine($"\t\tservices.AddScoped<{x.InterfaceName},{x.RepoName}>();"));
+
+            return $@"
+using {baseNamespace}.Repositories;
+namespace {baseNamespace};
+
+public static class RepositoryRegistration
+{{
+    public static IServiceCollection RegisterRepos(this IServiceCollection services)
+    {{
+{sb}
+        return services;
+    }}
+}}
+";
+        }
+
+        #endregion
     }
 }
