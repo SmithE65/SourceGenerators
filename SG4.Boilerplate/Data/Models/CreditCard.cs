@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace SG4.Boilerplate.Data.Models
 {
     /// <summary>
     /// Customer credit card information.
     /// </summary>
+    [Table("CreditCard", Schema = "Sales")]
+    [Index(nameof(CardNumber), Name = "AK_CreditCard_CardNumber", IsUnique = true)]
     public partial class CreditCard
     {
         public CreditCard()
@@ -17,14 +22,18 @@ namespace SG4.Boilerplate.Data.Models
         /// <summary>
         /// Primary key for CreditCard records.
         /// </summary>
+        [Key]
+        [Column("CreditCardID")]
         public int CreditCardId { get; set; }
         /// <summary>
         /// Credit card name.
         /// </summary>
+        [StringLength(50)]
         public string CardType { get; set; } = null!;
         /// <summary>
         /// Credit card number.
         /// </summary>
+        [StringLength(25)]
         public string CardNumber { get; set; } = null!;
         /// <summary>
         /// Credit card expiration month.
@@ -37,9 +46,12 @@ namespace SG4.Boilerplate.Data.Models
         /// <summary>
         /// Date and time the record was last updated.
         /// </summary>
+        [Column(TypeName = "datetime")]
         public DateTime ModifiedDate { get; set; }
 
+        [InverseProperty(nameof(PersonCreditCard.CreditCard))]
         public virtual ICollection<PersonCreditCard> PersonCreditCards { get; set; }
+        [InverseProperty(nameof(SalesOrderHeader.CreditCard))]
         public virtual ICollection<SalesOrderHeader> SalesOrderHeaders { get; set; }
     }
 }

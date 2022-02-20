@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace SG4.Boilerplate.Data.Models
 {
     /// <summary>
     /// Product images.
     /// </summary>
+    [Table("ProductPhoto", Schema = "Production")]
     public partial class ProductPhoto
     {
         public ProductPhoto()
@@ -16,6 +20,8 @@ namespace SG4.Boilerplate.Data.Models
         /// <summary>
         /// Primary key for ProductPhoto records.
         /// </summary>
+        [Key]
+        [Column("ProductPhotoID")]
         public int ProductPhotoId { get; set; }
         /// <summary>
         /// Small image of the product.
@@ -24,6 +30,7 @@ namespace SG4.Boilerplate.Data.Models
         /// <summary>
         /// Small image file name.
         /// </summary>
+        [StringLength(50)]
         public string? ThumbnailPhotoFileName { get; set; }
         /// <summary>
         /// Large image of the product.
@@ -32,12 +39,15 @@ namespace SG4.Boilerplate.Data.Models
         /// <summary>
         /// Large image file name.
         /// </summary>
+        [StringLength(50)]
         public string? LargePhotoFileName { get; set; }
         /// <summary>
         /// Date and time the record was last updated.
         /// </summary>
+        [Column(TypeName = "datetime")]
         public DateTime ModifiedDate { get; set; }
 
+        [InverseProperty(nameof(ProductProductPhoto.ProductPhoto))]
         public virtual ICollection<ProductProductPhoto> ProductProductPhotos { get; set; }
     }
 }
