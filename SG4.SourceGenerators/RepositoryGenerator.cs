@@ -24,11 +24,12 @@ namespace SG4.SourceGenerators
 
             foreach (var type in receiver.EntityTypes)
             {
-                var (repoName, interfaceName, source) = BuildRepository(receiver.ContextNamespace, type);
-                if (!string.IsNullOrEmpty(repoName))
+                var (repoMetaData, source) = BuildRepository(receiver.ContextNamespace, type);
+                if (!string.IsNullOrEmpty(repoMetaData.RepoName))
                 {
-                    context.AddSource($"{repoName}.g.cs", source);
-                    registrations.Add((repoName, interfaceName));
+                    context.AddSource($"{repoMetaData.RepoName}.g.cs", source);
+                    context.AddSource($"{type.Name}Controller.g.cs", BuildCrudController(repoMetaData, receiver.ContextNamespace));
+                    registrations.Add((repoMetaData.RepoName, repoMetaData.RepoInterfaceName));
                 }
             }
 
@@ -67,64 +68,72 @@ namespace SG4.SourceGenerators
 
         #region TypeBuilders
 
-        private static (string RepoName, string InterfaceName, string Source) BuildRepository(string baseNamespace, INamedTypeSymbol entity)
+        private static (RepoMetaData Metadata, string Source) BuildRepository(string baseNamespace, INamedTypeSymbol entity)
         {
-            var typeName = entity.Name;
-            var interfaceName = $"I{typeName}Repository";
-            var className = $"{typeName}Repository";
+            var repoMetaData = new RepoMetaData
+            {
+                EntityName = entity.Name,
+                EntityNamespace = entity.ContainingNamespace.ToString(),
+                RepoInterfaceName = $"I{entity.Name}Repository",
+                RepoName = $"{entity.Name}Repository",
+                RepoNamespace = $"{baseNamespace}.Repositories"
+            };
+
+            var baseInterfaces = $"IRepository<{repoMetaData.EntityName}>";
+            var methodImplementations = new StringBuilder();
+
             var key = entity.GetMembers()
                 .Where(x => x.Kind == SymbolKind.Property)
                 .Select(x => x as IPropertySymbol)
                 .FirstOrDefault(x => x != null && x.GetAttributes().Any(a => a.AttributeClass.Name == "KeyAttribute"));
 
-            var baseInterfaces = $"IRepository<{typeName}>";
-            var methodImplementations = new StringBuilder();
-
             if (key != null)
             {
                 if (key.Type.Name == "Int32")
                 {
-                    baseInterfaces += $", IIntegerKey<{typeName}>";
-                    methodImplementations.AppendLine($"\t public {typeName}? Find(int id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
+                    repoMetaData.HasFindByInt = true;
+                    baseInterfaces += $", IIntegerKey<{repoMetaData.EntityName}>";
+                    methodImplementations.AppendLine($"\t public {repoMetaData.EntityName}? Find(int id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
                 }
                 else if (key.Type.Name == "String")
                 {
-                    baseInterfaces += $", IStringKey<{typeName}>";
-                    methodImplementations.AppendLine($"\t public {typeName}? Find(string id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
+                    repoMetaData.HasFindByString = true;
+                    baseInterfaces += $", IStringKey<{repoMetaData.EntityName}>";
+                    methodImplementations.AppendLine($"\t public {repoMetaData.EntityName}? Find(string id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
                 }
             }
 
-            methodImplementations.AppendLine($"\t public {typeName}? Find(Expression<Func<{typeName}, bool>> expression) => Table.FirstOrDefault(expression);");
-            methodImplementations.AppendLine($"\t public {typeName}[] GetAll() => Table.ToArray();");
+            methodImplementations.AppendLine($"\t public {repoMetaData.EntityName}? Find(Expression<Func<{repoMetaData.EntityName}, bool>> expression) => Table.FirstOrDefault(expression);");
+            methodImplementations.AppendLine($"\t public {repoMetaData.EntityName}[] GetAll() => Table.Take(10).ToArray();"); // Don't want GetAll for most types in the real world, so limiting to 10
 
             var namespaces = new List<string>
                 {
                     "using System.Linq.Expressions;",
                     $"using {baseNamespace};",
-                    $"using {baseNamespace}.Repositories.Base;",
-                    $"using {entity.ContainingNamespace};"
+                    $"using {repoMetaData.RepoNamespace}.Base;",
+                    $"using {repoMetaData.EntityNamespace};"
                 };
 
             var repo = $@"
 {string.Join(Environment.NewLine, namespaces.OrderBy(x => x))}
 
-namespace { baseNamespace }.Repositories;
+namespace {repoMetaData.RepoNamespace};
 
 #nullable enable
 
-public partial interface {interfaceName} : {baseInterfaces} {{ }}
+public partial interface {repoMetaData.RepoInterfaceName} : {baseInterfaces} {{ }}
 
-internal partial class {className} : EfCoreRepositoryBase<{typeName}>, I{typeName}Repository
+internal partial class {repoMetaData.RepoName} : EfCoreRepositoryBase<{repoMetaData.EntityName}>, {repoMetaData.RepoInterfaceName}
 {{
-    public {className}({dbContextName} context) : base(context) {{ }}
+    public {repoMetaData.RepoName}({dbContextName} context) : base(context) {{ }}
 {methodImplementations}
 }}
 ";
 
-            return (className, interfaceName, repo);
+            return (repoMetaData, repo);
         }
 
-        string BuildRegistrations(string baseNamespace, List<(string RepoName, string InterfaceName)> repositories)
+        private static string BuildRegistrations(string baseNamespace, List<(string RepoName, string InterfaceName)> repositories)
         {
             var sb = new StringBuilder();
             repositories.ForEach(x => sb.AppendLine($"\t\tservices.AddScoped<{x.InterfaceName},{x.RepoName}>();"));
@@ -142,6 +151,68 @@ public static class RepositoryRegistration
     }}
 }}
 ";
+        }
+
+        private static string BuildCrudController(RepoMetaData data, string baseNamespace)
+        {
+            var sb = new StringBuilder();
+            if (data.HasFindByInt)
+            {
+                sb.AppendLine($@"
+    [HttpGet(""{{id}}"")]
+    public IActionResult GetById(int id)
+    {{
+        return Ok(_repo.Find(id));
+    }}
+");
+            }
+            if (data.HasFindByString)
+            {
+                sb.AppendLine($@"
+    [HttpGet(""{{id}}"")]
+    public IActionResult GetById(string id)
+    {{
+        return Ok(_repo.Find(id));
+    }}
+");
+            }
+
+            return $@"
+using {data.RepoNamespace};
+using Microsoft.AspNetCore.Mvc;
+
+namespace {baseNamespace}.Controllers;
+
+[Route(""api/[controller]/[action]"")]
+[ApiController]
+public partial class {data.EntityName}Controller : ControllerBase
+{{
+    private readonly {data.RepoInterfaceName} _repo;
+    public {data.EntityName}Controller({data.RepoInterfaceName} repo)
+    {{
+        _repo = repo;
+    }}
+
+{sb}
+
+    [HttpGet]
+    public IActionResult GetAll()
+    {{
+        return Ok(_repo.GetAll());
+    }}
+}}
+";
+        }
+
+        private class RepoMetaData
+        {
+            public string EntityName { get; set; }
+            public string EntityNamespace { get; set; }
+            public string RepoName { get; set; }
+            public string RepoInterfaceName { get; set; }
+            public string RepoNamespace { get; set; }
+            public bool HasFindByInt { get; set; }
+            public bool HasFindByString { get; set; }
         }
 
         #endregion
