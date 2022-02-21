@@ -11,6 +11,7 @@ namespace SG4.SourceGenerators
     public class RepositoryGenerator : ISourceGenerator
     {
         private const string dbContextName = "ApplicationDbContext";
+        private const string baseNamespace = "SG4.Boilerplate";
 
         public void Execute(GeneratorExecutionContext context)
         {
@@ -28,7 +29,7 @@ namespace SG4.SourceGenerators
                 if (!string.IsNullOrEmpty(repoMetaData.RepoName))
                 {
                     context.AddSource($"{repoMetaData.RepoName}.g.cs", source);
-                    context.AddSource($"{type.Name}Controller.g.cs", BuildCrudController(repoMetaData, receiver.ContextNamespace));
+                    context.AddSource($"{type.Name}Controller.g.cs", BuildCrudController(repoMetaData, baseNamespace));
                     registrations.Add((repoMetaData.RepoName, repoMetaData.RepoInterfaceName));
                 }
             }
@@ -93,18 +94,18 @@ namespace SG4.SourceGenerators
                 {
                     repoMetaData.HasFindByInt = true;
                     baseInterfaces += $", IIntegerKey<{repoMetaData.EntityName}>";
-                    methodImplementations.AppendLine($"\t public {repoMetaData.EntityName}? Find(int id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
+                    methodImplementations.AppendLine($"\tpublic {repoMetaData.EntityName}? Find(int id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
                 }
                 else if (key.Type.Name == "String")
                 {
                     repoMetaData.HasFindByString = true;
                     baseInterfaces += $", IStringKey<{repoMetaData.EntityName}>";
-                    methodImplementations.AppendLine($"\t public {repoMetaData.EntityName}? Find(string id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
+                    methodImplementations.AppendLine($"\tpublic {repoMetaData.EntityName}? Find(string id) => Table.FirstOrDefault(x => x.{key.Name} == id);");
                 }
             }
 
-            methodImplementations.AppendLine($"\t public {repoMetaData.EntityName}? Find(Expression<Func<{repoMetaData.EntityName}, bool>> expression) => Table.FirstOrDefault(expression);");
-            methodImplementations.AppendLine($"\t public {repoMetaData.EntityName}[] GetAll() => Table.Take(10).ToArray();"); // Don't want GetAll for most types in the real world, so limiting to 10
+            methodImplementations.AppendLine($"\tpublic {repoMetaData.EntityName}? Find(Expression<Func<{repoMetaData.EntityName}, bool>> expression) => Table.FirstOrDefault(expression);");
+            methodImplementations.AppendLine($"\tpublic {repoMetaData.EntityName}[] GetAll() => Table.Take(10).ToArray();"); // Don't want GetAll for most types in the real world, so limiting to 10
 
             var namespaces = new List<string>
                 {
@@ -126,8 +127,7 @@ public partial interface {repoMetaData.RepoInterfaceName} : {baseInterfaces} {{ 
 internal partial class {repoMetaData.RepoName} : EfCoreRepositoryBase<{repoMetaData.EntityName}>, {repoMetaData.RepoInterfaceName}
 {{
     public {repoMetaData.RepoName}({dbContextName} context) : base(context) {{ }}
-{methodImplementations}
-}}
+{methodImplementations}}}
 ";
 
             return (repoMetaData, repo);
